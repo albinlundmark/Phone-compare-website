@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { extname, join, normalize } from "node:path";
 
 const port = Number(process.env.PORT || 8787);
+const host = process.env.HOST || "0.0.0.0";
 const githubToken = process.env.GITHUB_TOKEN || process.env.GITHUB_MODELS_TOKEN || "";
 const githubModel = process.env.GITHUB_MODEL || "openai/gpt-4.1";
 const githubApiVersion = process.env.GITHUB_MODELS_API_VERSION || "2026-03-10";
@@ -170,6 +171,6 @@ const server = createServer(async (request, response) => {
   sendJson(response, 405, { error: "Metoden stöds inte." });
 });
 
-server.listen(port, "127.0.0.1", () => {
-  console.log(`API-server kör på http://127.0.0.1:${port}`);
+server.listen(port, host, () => {
+  console.log(`API-server kör på http://${host}:${port}`);
 });
