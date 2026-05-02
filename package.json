@@ -1,0 +1,16 @@
+{
+  "scripts": {
+    "dev": "vite --host 127.0.0.1",
+    "api": "node --env-file-if-exists=.env server.mjs",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node --env-file-if-exists=.env server.mjs"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "lucide-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "vite": "latest"
+  }
+}
