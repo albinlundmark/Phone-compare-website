@@ -84,6 +84,21 @@ function isRateLimited(request) {
   return current.count > rateLimitMaxRequests;
 }
 
+function getAuthenticatedUser(request) {
+  const principal = request.headers["x-ms-client-principal"];
+
+  if (!principal) {
+    return null;
+  }
+
+  try {
+    const user = JSON.parse(Buffer.from(principal, "base64").toString("utf8"));
+    return user?.auth_typ && Array.isArray(user.claims) ? user : null;
+  } catch {
+    return null;
+  }
+}
+
 function slimPhone(phone) {
   if (!phone) {
     return null;
@@ -115,6 +130,14 @@ function slimPhone(phone) {
 
 async function handleAi(request, response) {
   let timeout;
+
+  if (!getAuthenticatedUser(request)) {
+    sendJson(response, 401, {
+      error: "Logga in med Google för att använda AI-guiden.",
+      loginUrl: "/.auth/login/google",
+    });
+    return;
+  }
 
   if (isRateLimited(request)) {
     sendJson(response, 429, { error: "För många frågor. Försök igen om en stund." });

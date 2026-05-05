@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { Award, BatteryCharging, Check, Search, ShieldCheck, Smartphone } from "lucide-react";
 import "./styles.css";
@@ -1832,10 +1832,51 @@ function LocalAiGuide({ first, second, score }) {
     "Fråga den riktiga AI:n om kamera, selfie, batteri, spel, processor, pris eller lagring.",
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [authStatus, setAuthStatus] = useState("checking");
   const [error, setError] = useState("");
+  const isAuthenticated = authStatus === "authenticated";
+
+  useEffect(() => {
+    let isMounted = true;
+
+    async function checkAuth() {
+      try {
+        const response = await fetch("/.auth/me", { credentials: "include" });
+        const data = response.ok ? await response.json() : [];
+        const hasUser = Array.isArray(data) ? data.length > 0 : Boolean(data?.clientPrincipal);
+
+        if (isMounted) {
+          setAuthStatus(hasUser ? "authenticated" : "unauthenticated");
+        }
+      } catch {
+        if (isMounted) {
+          setAuthStatus("unauthenticated");
+        }
+      }
+    }
+
+    checkAuth();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  function redirectToLogin(loginUrl = "/.auth/login/google") {
+    const redirectUrl = `${loginUrl}?post_login_redirect_uri=${encodeURIComponent(
+      window.location.pathname + window.location.search,
+    )}`;
+    window.location.assign(redirectUrl);
+  }
 
   async function handleSubmit(event) {
     event.preventDefault();
+
+    if (!isAuthenticated) {
+      redirectToLogin();
+      return;
+    }
+
     const trimmedQuestion = question.trim();
 
     if (!trimmedQuestion) {
@@ -1861,6 +1902,11 @@ function LocalAiGuide({ first, second, score }) {
       });
 
       const data = await response.json();
+
+      if (response.status === 401 && data.loginUrl) {
+        redirectToLogin(data.loginUrl);
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(data.error || "AI-servern svarade inte.");
@@ -1894,8 +1940,14 @@ function LocalAiGuide({ first, second, score }) {
             placeholder="Ex: vilken har bäst kamera?"
           />
         </label>
-        <button disabled={isLoading} type="submit">
-          {isLoading ? "Tänker..." : "Fråga"}
+        <button disabled={isLoading || authStatus === "checking"} type="submit">
+          {authStatus === "checking"
+            ? "Kontrollerar..."
+            : isAuthenticated
+              ? isLoading
+                ? "Tänker..."
+                : "Fråga"
+              : "Logga in för AI"}
         </button>
       </form>
 
